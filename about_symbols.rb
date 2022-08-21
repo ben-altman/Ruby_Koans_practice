@@ -33,6 +33,12 @@ class AboutSymbols < Neo::Koan
   # Why do we convert the list of symbols to strings and then compare
   # against the string value rather than against symbols?
 
+=begin
+  This has to do with how symbols work. For each symbol, only one of it actually exists. Behind the scenes, a symbol is just a number referred to by a name (starting with a colon). Thus, when comparing the equality of two symbols, you're comparing object identity and not the content of the identifier that refers to this symbol.
+  If you were to do the simple test :test == "test", it will be false. So, if you were to gather all of the symbols defined thus far into an array, you would need to convert them to strings first before comparing them. You can't do this the opposite way (convert the string you want to compare into a symbol first) because doing that would create the single instance of that symbol and "pollute" your list with the symbol you're testing for existence.
+  Hope that helps. This is a bit of an odd one, because you have to test for the presence of a symbol without accidentally creating that symbol during the test. You usually don't see code like that.
+=end
+
   in_ruby_version("mri") do
     RubyConstant = "What is the sound of one hand clapping?"
     def test_constants_become_symbols
@@ -50,33 +56,36 @@ class AboutSymbols < Neo::Koan
   def test_symbols_with_spaces_can_be_built
     symbol = :"cats and dogs"
 
-    assert_equal __.to_sym, symbol
+    assert_equal :"cats and dogs".to_sym, symbol
   end
 
   def test_symbols_with_interpolation_can_be_built
     value = "and"
     symbol = :"cats #{value} dogs"
 
-    assert_equal __.to_sym, symbol
+    assert_equal "cats and dogs".to_sym, symbol
   end
 
   def test_to_s_is_called_on_interpolated_symbols
     symbol = :cats
     string = "It is raining #{symbol} and dogs."
 
-    assert_equal __, string
+    assert_equal "It is raining cats and dogs.", string
   end
 
   def test_symbols_are_not_strings
     symbol = :ruby
-    assert_equal __, symbol.is_a?(String)
-    assert_equal __, symbol.eql?("ruby")
+    assert_equal false, symbol.is_a?(String)
+    assert_equal false, symbol.eql?("ruby")
   end
 
   def test_symbols_do_not_have_string_methods
     symbol = :not_a_string
-    assert_equal __, symbol.respond_to?(:each_char)
-    assert_equal __, symbol.respond_to?(:reverse)
+
+    # remember that method names are internally stored as symbols in Ruby
+    
+    assert_equal false, symbol.respond_to?(:each_char)
+    assert_equal false, symbol.respond_to?(:reverse)
   end
 
   # It's important to realize that symbols are not "immutable
@@ -85,16 +94,18 @@ class AboutSymbols < Neo::Koan
 
   def test_symbols_cannot_be_concatenated
     # Exceptions will be pondered further down the path
-    assert_raise(___) do
+    assert_raise((NoMethodError)) do
       :cats + :dogs
     end
   end
 
   def test_symbols_can_be_dynamically_created
-    assert_equal __, ("cats" + "dogs").to_sym
+    assert_equal :catsdogs, ("cats" + "dogs").to_sym
   end
 
   # THINK ABOUT IT:
   #
   # Why is it not a good idea to dynamically create a lot of symbols?
+
+  
 end
